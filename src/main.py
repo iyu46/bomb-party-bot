@@ -22,6 +22,7 @@ with open('resources/words_dictionary.json') as word_file1:
     VALID_WORDS = set(word_file1.read().split())
 with open('resources/forbidden_three.json') as word_file:
     LOWER_ALPHABET = string.ascii_lowercase
+    LOWER_ALPHABET = LOWER_ALPHABET.strip('y')
     VOWELS = ['a', 'e', 'i', 'o', 'u', 'y']
     FORBIDDEN = set(word_file.read().split())
 
@@ -115,11 +116,11 @@ async def on_message(message):
     
     ctx = await bot.get_context(message)
 
-    if message.content.strip() == "!bp":
+    if str(message.content).strip() == "!bp":
         await commands(ctx)
         return
 
-    if ctx.prefix.strip() == "!bp":
+    if str(ctx.prefix).strip() == "!bp":
         if ctx.command is None:
             await commands(ctx)
             return
@@ -162,9 +163,9 @@ async def start(ctx):
         activeGames_set(ctx.message.channel.id, ctx.author.id, '')
 
         def check(message):
-            return message.author == ctx.author and message.channel == ctx.channel and message.content.isdigit() and message.content > '0' and message.content <= '50'
+            return message.author == ctx.author and message.channel == ctx.channel and message.content.isdigit() and message.content > '0' and message.content <= '300'
         
-        await ctx.send('A game of Bomb Party has been started by ' + ctx.message.author.mention + '! To how many points would you like to play until? Enter a number between 1-50.' )
+        await ctx.send('A game of Bomb Party has been started by ' + ctx.message.author.name + '! To how many points would you like to play until? Enter a number between 1-300.' )
         points = ''
         try:
             points = await bot.wait_for('message', timeout=15.0, check=check)
@@ -202,14 +203,18 @@ async def join_time(ctx):
         response = await bot.wait_for('message', timeout=15.0, check=check)
         await end(ctx)
     except asyncio.TimeoutError:
-        await ctx.send('Game is starting!' )
-        await game_init(ctx)
+        if activeGames_get(ctx.message.channel.id, "_PLAYERS"):
+            await ctx.send('Game is starting!' )
+            await game_init(ctx)
+        else:
+            activeGames_end(ctx.message.channel.id)
+            await ctx.send('Timed out due to no players. Game has been terminated.')
 
 
 
 async def game_init(ctx):
     activeGames_set(ctx.message.channel.id, 'playing', '_STATE')
-    await ctx.send('game init' )
+    #await ctx.send('game init' )
     await game(ctx)
 
 
@@ -225,7 +230,7 @@ async def game(ctx):
                 em.add_field(name='Goal', value=str(activeGames_get(ctx.message.channel.id, "_GOAL")), inline='true')
                 em.add_field(name='Points', value=str(activeGames_get(ctx.message.channel.id, "_PLAYERS")[str(player)]['points']), inline='true')
                 em.add_field(name='Health', value=str(activeGames_get(ctx.message.channel.id, "_PLAYERS")[str(player)]['health']), inline='true')
-                em.add_field(name='Type !bp kill to leave the game.', value='', inline='false')
+                em.add_field(name='Type !bp kill to leave the game.', value='For emergencies and stuff.', inline='false')
                 msg = mention + ", it's your turn! Write a word that contains " + str(trigram.upper() + ". Longer words give you more points!")
                 await ctx.send(msg, embed = em)
                 
@@ -234,8 +239,8 @@ async def game(ctx):
                 
                 try:
                     response = await bot.wait_for('message', timeout=10.0, check=check)
-                    points = len(response.content) - 3
-                    msg2 = "Nice! " + mention + " gained " + str(points) + " point"
+                    points = len(response.content) - 2
+                    msg2 = "Nice! " + ctx.message.author.name + " gained " + str(points) + " point"
                     if points > 1:
                         msg2 = msg2 + 's'
                     msg2 = msg2 + '.'
@@ -246,10 +251,10 @@ async def game(ctx):
                         activeGames_set(ctx.message.channel.id, -1, "_GOAL")
                         break
                 except asyncio.TimeoutError:
-                    await ctx.send("Ran out of time! " + mention + " lost 1 health.")
+                    await ctx.send("Ran out of time! " + ctx.message.author.name + " lost 1 health.")
                     activeGames_get(ctx.message.channel.id, "_PLAYERS")[str(player)]['health'] -= 1
                     if activeGames_get(ctx.message.channel.id, "_PLAYERS")[str(player)]['health'] == 0:
-                        await ctx.send("Oh no, " + mention + "! You have blown up. Better luck next time!")
+                        await ctx.send("Oh no, " + ctx.message.author.name + "! You have blown up. Better luck next time!")
 
 
         # if goal was reached (goal is set to -1 after victory)
