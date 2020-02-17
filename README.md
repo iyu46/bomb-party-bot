@@ -12,12 +12,6 @@ Forbidden three (least likely trigrams in English) from [rlvaugh/Impractical_Pyt
 
 # Commands
 
-```!bp active``` to set bot state
+```!bp``` to see all available commands
 
-```!bp rules``` to see rules
-
-```!bp start``` to start game
-
-```!bp join``` to join ongoing game
-
-```!bp end``` to end game
+```!bp help [command]``` to see help info available for that command
